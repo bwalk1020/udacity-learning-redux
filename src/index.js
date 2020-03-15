@@ -1,3 +1,5 @@
+import generate from "@babel/generator";
+
 // Library Code
 function createStore (reducer) {
   // The store should have four parts
@@ -114,53 +116,94 @@ function app (state = {}, action) {
 const store = createStore(app);
 
 store.subscribe(() => {
-  console.log('The new state is: ', store.getState());
+  const {goals, todos} = store.getState();
+
+  document.getElementById('todos').innerHTML = '';
+  document.getElementById('goals').innerHTML = '';
+
+  goals.forEach(addGoalToDOM);
+  todos.forEach(addTodoToDOM)
 });
 
-store.dispatch(addTodoAction({
-  id: 0,
-  name: 'Learn Redux',
-  complete: false
-}));
+function generateId () {
+  return Math.random().toString(36).substring(2) + (new Date()).getTime().toString(36);
+}
 
-store.dispatch(addTodoAction({
-  id: 1,
-  name: 'Grocery Shopping',
-  complete: false
-}));
 
-store.dispatch(toggleTodoAction(1));
+// DOM Code
+function addTodo (event) {
+  event.preventDefault();
+  const input = document.getElementById('todo');
+  const name = input.value;
+  input.nodeValue = '';
 
-store.dispatch(addGoalAction({
-  id: 0,
-  name: 'Lose 20 LBs',
-  complete: false
-}));
+  const todo = {
+    name,
+    complete: false,
+    id: generateId()
+  };
 
-store.dispatch(addGoalAction({
-  id: 1,
-  name: 'Grow Beard',
-  complete: false
-}));
+  store.dispatch(addTodoAction(todo));
+}
 
-store.dispatch(addGoalAction({
-  id: 2,
-  name: 'Update GitHub',
-  complete: false
-}));
+function addGoal (event) {
+  event.preventDefault();
+  const input = document.getElementById('goal');
+  const name = input.value;
+  const goal = {
+    name,
+    complete: false,
+    id: generateId()
+  };
 
-store.dispatch(removeGoalAction(2));
-store.dispatch(toggleGoalAction(1));
+  input.nodeValue = '';
+  store.dispatch(addGoalAction(goal));
+}
 
-// import React from 'react';
-// import ReactDOM from 'react-dom';
-// import './index.css';
-// import App from './App';
-// import * as serviceWorker from './serviceWorker';
+function addTodoToDOM (todo) {
+  const node = document.createElement('li');
+  const text = document.createTextNode(todo.name);
+  const removeButton = createRemoveButton(() =>{
+    store.dispatch(removeTodoAction(todo.id));
+  });
 
-// ReactDOM.render(<App />, document.getElementById('root'));
+  node.appendChild(text);
+  node.appendChild(removeButton);
+  node.style.textDecoration = todo.complete ? 'line-through' : 'none';
+  node.addEventListener('click', () =>{ 
+    store.dispatch(toggleTodoAction(todo.id));
+  });
+  document.getElementById('todos')
+    .appendChild(node);
+}
 
-// // If you want your app to work offline and load faster, you can change
-// // unregister() to register() below. Note this comes with some pitfalls.
-// // Learn more about service workers: https://bit.ly/CRA-PWA
-// serviceWorker.unregister();
+function createRemoveButton (onClick) {
+  const removeButton = document.createElement('button');
+  removeButton.innerHTML = 'X';
+  removeButton.addEventListener('click', onClick);
+  return removeButton;
+}
+
+function addGoalToDOM (goal) {
+  const node = document.createElement('li');
+  const text = document.createTextNode(goal.name);
+  const removeButton = createRemoveButton(() =>{
+    store.dispatch(removeGoalAction(goal.id));
+  });
+  
+  node.appendChild(text);
+  node.appendChild(removeButton);
+  node.style.textDecoration = goal.complete ? 'line-through' : 'none';
+  node.addEventListener('click', () =>{ 
+    store.dispatch(toggleGoalAction(goal.id));
+  });
+  document.getElementById('goals')
+    .appendChild(node);
+}
+
+document.getElementById('todo-btn')
+  .addEventListener('click', addTodo);
+
+document.getElementById('goal-btn')
+  .addEventListener('click', addGoal);
+
